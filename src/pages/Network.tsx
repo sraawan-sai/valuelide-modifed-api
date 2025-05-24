@@ -943,7 +943,7 @@ const Network: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {directReferrals.map((member) => (
                   <div
-                    key={member.id}
+                    key={member.distributorId}
                     className="border border-neutral-200 rounded-lg p-4 flex items-start"
                   >
                     <div className="h-10 w-10 bg-neutral-100 rounded-full flex items-center justify-center mr-3">
