@@ -42,7 +42,7 @@ const CustomNode: React.FC<{ member: NetworkMember; onNodeClick: (member: Networ
           />
           <div className="min-w-0">
             <p className="text-sm font-medium text-neutral-900 truncate">{member.name}</p>
-            <p className="text-xs text-neutral-500 truncate">ID: {member.id.substring(0, 8)}...</p>
+            <p className="text-xs text-neutral-500 truncate">ID: {member.distributorId}...</p>
             <p className="text-xs text-neutral-500 truncate">Code: {member.referralCode}</p>
             <div className="mt-1">
               <Badge
