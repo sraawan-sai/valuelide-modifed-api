@@ -18,6 +18,7 @@ import {
   commissionStructure
 } from '../data/mockData';
 import axios from 'axios';
+import { get } from 'jquery';
 
 // Storage keys
 export const STORAGE_KEYS = {
@@ -358,16 +359,25 @@ export const getUserNetworkStats = (userId: string): NetworkStats => {
 };
 
 // Get user-specific wallet
-export const getUserWallet = (userId: string): Wallet => {
-  // Try to get user-specific wallet first
-  const userWallet = getFromStorage<Wallet>(`${STORAGE_KEYS.WALLET}_${userId}`);
-  if (userWallet) {
-    return userWallet;
-  }
+export const getUserWallet = async (userId: string): Promise<Wallet | undefined> => {
+  try {
+    // Await the axios GET request
+    const response = await axios.get(`${serverUrl}/api/db/wallet/${userId}`);
 
-  // Fall back to default wallet (for backward compatibility)
-  return getWallet();
+    // Check if the response has data
+    if (response && response.data) {
+      console.log("Fetched wallet data:", response.data);
+      return response.data; // Return the actual Wallet data (from response.data)
+    } else {
+      console.error("No wallet data found");
+      return undefined; // Return undefined if no data is found
+    }
+  } catch (error) {
+    console.error("Error fetching wallet data:", error);
+    return undefined; // Return undefined in case of an error
+  }
 };
+
 
 // Get user-specific dashboard stats
 // export const getUserDashboardStats = (userId: string): DashboardStats => {
@@ -416,7 +426,7 @@ export const getUserTransactions = async (userId: string): Promise<Transaction[]
 export const addTransaction = async (transaction: Transaction): Promise<void> => {
   const transactions = await getAllTransactions();
   transactions.push(transaction);
-  setToStorage(STORAGE_KEYS.TRANSACTIONS, transactions);
+  //setToStorage(STORAGE_KEYS.TRANSACTIONS, transactions);
 
   // Update wallet balance
   await updateWalletAfterTransaction(transaction);
@@ -427,7 +437,7 @@ const updateWalletAfterTransaction = async (transaction: Transaction): Promise<v
   if (transaction.status !== 'completed') return;
 
   // Get the specific user's wallet
-  const userWallet = getUserWallet(transaction.userId);
+  const userWallet = await getUserWallet(transaction.userId);
   if (!userWallet) return;
 
   let balanceChange = 0;
@@ -444,6 +454,7 @@ const updateWalletAfterTransaction = async (transaction: Transaction): Promise<v
 
   const updatedWallet: Wallet = {
     ...userWallet,
+    userId:userWallet.userId,
     balance: userWallet.balance + balanceChange,
     transactions: userTransactions
   };
@@ -991,7 +1002,7 @@ export const processWithdrawalRequest = async (transactionId: string, approved: 
       transactions.push(reversalTransaction);
 
       // Update user wallet balance
-      const userWallet = getUserWallet(originalTransaction.userId);
+      const userWallet = await getUserWallet(originalTransaction.userId);
       if (userWallet) {
         userWallet.balance += Math.abs(originalTransaction.amount);
         updateWallet(userWallet);
@@ -1318,12 +1329,15 @@ export const checkAndUpdateMissingReferralBonuses = async (userId: string): Prom
 };
 
 // Function to get a user wallet and ensure all referral bonuses are included
-export const getUserWalletWithUpdatedBonuses = (userId: string): Wallet => {
+export const getUserWalletWithUpdatedBonuses = async (userId: string): Promise<Wallet> => {
   // First check and update any missing referral bonuses
-  checkAndUpdateMissingReferralBonuses(userId);
-
+  await checkAndUpdateMissingReferralBonuses(userId);
+ const userWallet = await getUserWallet(userId);
+  if (!userWallet) {
+    throw new Error("Failed to fetch user wallet.");
+  }
   // Then return the updated wallet
-  return getUserWallet(userId);
+  return userWallet
 };
 
 // Function to create and add a team matching bonus transaction

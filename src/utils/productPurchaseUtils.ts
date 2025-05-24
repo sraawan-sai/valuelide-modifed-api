@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { 
   Transaction, 
   User, 
@@ -21,6 +22,8 @@ import {
 } from './localStorageService';
 import { Product } from './productService';
 import { v4 as uuidv4 } from 'uuid';
+
+const serverUrl = import.meta.env.VITE_SERVER_URL;
 
 // Define an extended transaction interface for purchases
 interface PurchaseTransaction extends Transaction {
@@ -53,7 +56,7 @@ export const recordProductPurchase = async (
     }
     
     // Get product details
-    const products = JSON.parse(localStorage.getItem('value_life_products') || '[]');
+    const products:Product[] =  await axios.get(`${serverUrl}/api/db/products`)//JSON.parse(localStorage.getItem('value_life_products') || '[]');
     const product = products.find((p: Product) => p.id === productId);
     
     if (!product) {

@@ -339,42 +339,38 @@ export const processPayment = async (product: Product): Promise<boolean> => {
 };
 
 // Simplified payment verification
-export const handlePaymentVerification =  (
+export const handlePaymentVerification = async (
   paymentId: string,
   systemOrderId: string
 ): Promise<boolean> => {
-  return new Promise((resolve) => {
-    try {
-      // Suppress warnings during verification
-      const restoreConsole = suppressConsoleWarnings();
-      
-      // Get product ID from the order
-      const order = updateOrderWithPayment(systemOrderId, paymentId, 'paid');
-      
-      if (!order) {
-        restoreConsole();
-        console.error('Order not found:', systemOrderId);
-        resolve(false);
-        return;
-      }
-      
-      // Record the purchase using our utility
-      const success = recordProductPurchase(
-        order.productId,
-        paymentId,
-        paymentId
-      );
-      
+  try {
+    // Suppress warnings during verification
+    const restoreConsole = suppressConsoleWarnings();
+    
+    // Get product ID from the order
+    const order = await updateOrderWithPayment(systemOrderId, paymentId, 'paid');
+    
+    if (!order) {
       restoreConsole();
-      console.log('Payment verification result:', success);
-      resolve(success);
-    } catch (error) {
-      console.error('Error verifying payment:', error);
-      resolve(false);
+      console.error('Order not found:', systemOrderId);
+      return false;
     }
-  });
+    
+    // Record the purchase using our utility
+    const success = await recordProductPurchase(
+      order.productId,
+      paymentId,
+      paymentId
+    );
+    
+    restoreConsole();
+    console.log('Payment verification result:', success);
+    return success;
+  } catch (error) {
+    console.error('Error verifying payment:', error);
+    return false;
+  }
 };
-
 // This is a mock implementation since actual Razorpay integration requires backend API
 
 export interface RazorpayPayout {

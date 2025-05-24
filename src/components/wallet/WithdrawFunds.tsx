@@ -8,7 +8,7 @@ import { getCurrentUser, getFromStorage, setToStorage } from '../../utils/localS
 import toast from 'react-hot-toast';
 
 interface WithdrawFundsProps {
-  walletBalance: number;
+  walletBalance: number; // This is the wallet balance passed down from the parent component
   onSuccess: () => void;
 }
 
@@ -29,95 +29,79 @@ const WithdrawFunds: React.FC<WithdrawFundsProps> = ({ walletBalance, onSuccess 
       setErrors(prev => ({ ...prev, amount: 'Please enter a valid amount' }));
       return false;
     }
-    
+
     if (amountValue < 100) {
       setErrors(prev => ({ ...prev, amount: 'Minimum withdrawal amount is ₹100' }));
       return false;
     }
-    
-    // We're allowing withdrawal requests to go to admin regardless of balance
-    // Admin will decide whether to approve based on actual balance
-    
-    // Clear any previous errors
+
+    if (amountValue > walletBalance) {
+      setErrors(prev => ({ ...prev, amount: 'Insufficient balance for withdrawal' }));
+      return false;
+    }
+
     setErrors(prev => ({ ...prev, amount: '' }));
     return true;
   };
 
   const validateBankDetails = (): boolean => {
-    // We'll only check if fields are not entirely empty
     const newErrors: {[key: string]: string} = {};
-    
-    // Just make sure the user entered something in each field
-    // No specific format validation
+
     if (!bankName.trim()) {
       newErrors.bankName = 'Please enter bank name';
       return false;
     }
-    
+
     if (!accountNumber.trim()) {
       newErrors.accountNumber = 'Please enter account number';
       return false;
     }
-    
+
     if (!confirmAccountNumber.trim()) {
       newErrors.confirmAccountNumber = 'Please confirm account number';
       return false;
     }
-    
+
     if (accountNumber !== confirmAccountNumber) {
       newErrors.confirmAccountNumber = 'Account numbers do not match';
       return false;
     }
-    
+
     if (!ifscCode.trim()) {
       newErrors.ifscCode = 'Please enter IFSC code';
       return false;
     }
-    
+
     if (!accountHolderName.trim()) {
       newErrors.accountHolderName = 'Please enter account holder name';
       return false;
     }
-    
+
     setErrors(prev => ({ ...prev, ...newErrors }));
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validate amount and bank details
+
     const isAmountValid = validateAmount();
     const areBankDetailsValid = validateBankDetails();
-    
+
     if (!isAmountValid || !areBankDetailsValid) {
       return;
     }
-    
+
     setIsSubmitting(true);
-    
+
     try {
       const user = getCurrentUser();
       if (!user) {
         toast.error('You need to be logged in to withdraw funds');
         return;
       }
-      
-      // Parse withdrawal amount
+
       const withdrawalAmount = parseFloat(amount);
-      
-      console.log('Submitting withdrawal request:', {
-        userId: user.id,
-        amount: withdrawalAmount,
-        bankName,
-        accountNumber: accountNumber.trim()
-      });
-      
-      // Initialize withdrawal_requests if it doesn't exist
-      if (!getFromStorage('withdrawal_requests')) {
-        setToStorage('withdrawal_requests', []);
-      }
-      
+
       // Create withdrawal request
       const withdrawalRequest = await createWithdrawalRequest(
         user.id,
@@ -129,19 +113,14 @@ const WithdrawFunds: React.FC<WithdrawFundsProps> = ({ walletBalance, onSuccess 
           accountHolderName: accountHolderName.trim()
         }
       );
-      
+
       if (withdrawalRequest) {
-        // Force update localStorage to ensure the withdrawal request is saved
         const allRequests = getWithdrawalRequests();
         setToStorage('withdrawal_requests', allRequests);
-        
+
         setIsSuccess(true);
         toast.success('Withdrawal request submitted successfully');
-        
-        // Log the request for debugging
-        console.log('Submitted withdrawal request:', withdrawalRequest);
-        console.log('All withdrawal requests:', getWithdrawalRequests());
-        
+
         setTimeout(() => {
           onSuccess();
           resetForm();
@@ -168,6 +147,9 @@ const WithdrawFunds: React.FC<WithdrawFundsProps> = ({ walletBalance, onSuccess 
     setIsSuccess(false);
   };
 
+  // If balance is not a valid number or negative, fallback to 0
+  const formattedBalance = walletBalance >= 0 ? walletBalance : 0;
+
   return (
     <Card title="Withdraw Funds">
       {isSuccess ? (
@@ -185,14 +167,12 @@ const WithdrawFunds: React.FC<WithdrawFundsProps> = ({ walletBalance, onSuccess 
           <div className="bg-neutral-50 p-4 rounded-lg mb-6">
             <div className="flex justify-between items-center">
               <span className="text-sm font-medium text-neutral-600">Available Balance:</span>
-              <span className="text-xl font-bold text-success-600">₹{walletBalance.toLocaleString('en-IN')}</span>
+              <span className="text-xl font-bold text-success-600">₹{formattedBalance.toLocaleString('en-IN')}</span>
             </div>
           </div>
-          
+
           <div className="mb-6">
-            <label className="block text-sm font-medium text-neutral-700 mb-1">
-              Withdrawal Amount (₹)
-            </label>
+            <label className="block text-sm font-medium text-neutral-700 mb-1">Withdrawal Amount (₹)</label>
             <Input
               type="number"
               value={amount}
@@ -204,18 +184,14 @@ const WithdrawFunds: React.FC<WithdrawFundsProps> = ({ walletBalance, onSuccess 
             {errors.amount && (
               <p className="mt-1 text-sm text-error-600">{errors.amount}</p>
             )}
-            <p className="mt-1 text-xs text-neutral-500">
-              Minimum withdrawal amount: ₹100
-            </p>
+            <p className="mt-1 text-xs text-neutral-500">Minimum withdrawal amount: ₹100</p>
           </div>
-          
+
           <div className="border-t border-neutral-200 pt-4 mb-4">
             <h3 className="font-medium text-neutral-800 mb-4">Bank Account Details</h3>
-            
+            {/* Bank details form inputs */}
             <div className="mb-4">
-              <label className="block text-sm font-medium text-neutral-700 mb-1">
-                Bank Name
-              </label>
+              <label className="block text-sm font-medium text-neutral-700 mb-1">Bank Name</label>
               <Input
                 type="text"
                 value={bankName}
@@ -223,15 +199,11 @@ const WithdrawFunds: React.FC<WithdrawFundsProps> = ({ walletBalance, onSuccess 
                 placeholder="Bank name"
                 className={errors.bankName ? 'border-error-300' : ''}
               />
-              {errors.bankName && (
-                <p className="mt-1 text-sm text-error-600">{errors.bankName}</p>
-              )}
+              {errors.bankName && <p className="mt-1 text-sm text-error-600">{errors.bankName}</p>}
             </div>
-            
+
             <div className="mb-4">
-              <label className="block text-sm font-medium text-neutral-700 mb-1">
-                Account Number
-              </label>
+              <label className="block text-sm font-medium text-neutral-700 mb-1">Account Number</label>
               <Input
                 type="text"
                 value={accountNumber}
@@ -239,15 +211,11 @@ const WithdrawFunds: React.FC<WithdrawFundsProps> = ({ walletBalance, onSuccess 
                 placeholder="Account number"
                 className={errors.accountNumber ? 'border-error-300' : ''}
               />
-              {errors.accountNumber && (
-                <p className="mt-1 text-sm text-error-600">{errors.accountNumber}</p>
-              )}
+              {errors.accountNumber && <p className="mt-1 text-sm text-error-600">{errors.accountNumber}</p>}
             </div>
-            
+
             <div className="mb-4">
-              <label className="block text-sm font-medium text-neutral-700 mb-1">
-                Confirm Account Number
-              </label>
+              <label className="block text-sm font-medium text-neutral-700 mb-1">Confirm Account Number</label>
               <Input
                 type="text"
                 value={confirmAccountNumber}
@@ -259,11 +227,9 @@ const WithdrawFunds: React.FC<WithdrawFundsProps> = ({ walletBalance, onSuccess 
                 <p className="mt-1 text-sm text-error-600">{errors.confirmAccountNumber}</p>
               )}
             </div>
-            
+
             <div className="mb-4">
-              <label className="block text-sm font-medium text-neutral-700 mb-1">
-                IFSC Code
-              </label>
+              <label className="block text-sm font-medium text-neutral-700 mb-1">IFSC Code</label>
               <Input
                 type="text"
                 value={ifscCode}
@@ -271,15 +237,11 @@ const WithdrawFunds: React.FC<WithdrawFundsProps> = ({ walletBalance, onSuccess 
                 placeholder="IFSC code"
                 className={errors.ifscCode ? 'border-error-300' : ''}
               />
-              {errors.ifscCode && (
-                <p className="mt-1 text-sm text-error-600">{errors.ifscCode}</p>
-              )}
+              {errors.ifscCode && <p className="mt-1 text-sm text-error-600">{errors.ifscCode}</p>}
             </div>
-            
+
             <div className="mb-4">
-              <label className="block text-sm font-medium text-neutral-700 mb-1">
-                Account Holder Name
-              </label>
+              <label className="block text-sm font-medium text-neutral-700 mb-1">Account Holder Name</label>
               <Input
                 type="text"
                 value={accountHolderName}
@@ -292,7 +254,7 @@ const WithdrawFunds: React.FC<WithdrawFundsProps> = ({ walletBalance, onSuccess 
               )}
             </div>
           </div>
-          
+
           <div className="bg-warning-50 p-3 rounded-md mb-6">
             <div className="flex items-start">
               <AlertTriangle className="h-5 w-5 text-warning-600 mr-2 flex-shrink-0 mt-0.5" />
@@ -301,7 +263,7 @@ const WithdrawFunds: React.FC<WithdrawFundsProps> = ({ walletBalance, onSuccess 
               </p>
             </div>
           </div>
-          
+
           <div className="flex justify-end">
             <Button
               type="submit"
@@ -320,4 +282,4 @@ const WithdrawFunds: React.FC<WithdrawFundsProps> = ({ walletBalance, onSuccess 
   );
 };
 
-export default WithdrawFunds; 
+export default WithdrawFunds;
