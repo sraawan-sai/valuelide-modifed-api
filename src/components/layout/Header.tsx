@@ -23,7 +23,8 @@ const Header: React.FC = () => {
     { name: 'Dashboard', path: '/dashboard' },
     { name: 'My Network', path: '/network', requiresKyc: true },
     { name: 'Wallet', path: '/wallet', requiresKyc: true },
-    { name: 'KYC', path: '/kyc' }
+    { name: 'KYC', path: '/kyc' },
+    { name: 'Products', path: '/products' }
   ];
 
   useEffect(() => {
