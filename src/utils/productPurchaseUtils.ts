@@ -56,8 +56,11 @@ export const recordProductPurchase = async (
     }
     
     // Get product details
-    const products:Product[] =  await axios.get(`${serverUrl}/api/db/products`)//JSON.parse(localStorage.getItem('value_life_products') || '[]');
+      const response = await axios.get(`${serverUrl}/api/db/products`);
+const products: Product[] = response.data;
+    //const products:Product[] =  await axios.get(`${serverUrl}/api/db/products`)//JSON.parse(localStorage.getItem('value_life_products') || '[]');
     const product = products.find((p: Product) => p.id === productId);
+  
     
     if (!product) {
       console.error('Product not found');
