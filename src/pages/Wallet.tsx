@@ -82,22 +82,22 @@ const Wallet: React.FC = () => {
       }
     }
 
-    if(loggedInUserId) {
-      try {
-        const response = await axios.get(`${API_BASE_URL}/api/db/wallet/${loggedInUserId}`)
-        const data = response.data
+    // if(loggedInUserId) {
+    //   try {
+    //     const response = getUserDashboardStats// await axios.get(`${API_BASE_URL}/api/db/wallet/${loggedInUserId}`)
+    //     const data = response
 
-        if (data.success) {
-        setWalletData(data.data);
-      } else {
-        setError(data.message);
-      }
+    //     if (data.success) {
+    //     setWalletData(data.data);
+    //   } else {
+    //     setError(data.message);
+    //   }
 
-      } catch (error) {
-        setError('Failed to fetch wallet balance');
-        console.error('Wallet fetch error:', error);
-      }
-    }
+    //   } catch (error) {
+    //     setError('Failed to fetch wallet balance');
+    //     console.error('Wallet fetch error:', error);
+    //   }
+    // }
     
     setIsLoading(false);
   };
@@ -227,7 +227,7 @@ const Wallet: React.FC = () => {
             <div>
               <h2 className="text-lg font-medium text-neutral-700">Available Balance</h2>
               <div className="mt-2 flex items-baseline">
-                <span className="text-4xl font-bold text-neutral-900">{walletData ? walletData?.balance : 0}</span>
+                <span className="text-4xl font-bold text-neutral-900">{stats.totalEarnings}</span>
                 {stats.pendingWithdrawals > 0 && (
                   <span className="ml-4 text-sm text-neutral-500 flex items-center">
                     <Clock className="h-4 w-4 mr-1" />

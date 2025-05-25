@@ -485,7 +485,7 @@ const Register: React.FC = () => {
                     value={formData.sponsorId}
                     onChange={handleChange}
                     error={errors.sponsorId}
-                    placeholder="Enter your sponsor's ID or referral code"
+                    placeholder="Enter your Position ID or referral code"
                     leftIcon={<Users className="h-5 w-5" />}
                   />
                   {sponsorInfo && (
