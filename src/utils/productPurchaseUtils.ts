@@ -318,7 +318,7 @@ const processLevelCommissions = async(
         };
         
         // Add the level commission transaction
-        addTransaction(levelCommissionTransaction);
+        await addTransaction(levelCommissionTransaction);
         
         console.log(`Distributed level ${currentLevel} commission to ${uplineSponsor.name}: ${netLevelCommissionAmount}`);
       }
