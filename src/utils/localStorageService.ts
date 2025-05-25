@@ -464,8 +464,13 @@ export const addTransaction = async (transaction: Transaction): Promise<void> =>
     } else {
       // If transactions already exist, add the new one to the array
       transactions.push(transaction);
+
+      // Send the new transaction to the backend
+      await axios.post(`${serverUrl}/api/db/transactions`, transaction);  // API call to create the transaction in the database
+
+      // Update local storage with the new transaction
       setToStorage(STORAGE_KEYS.TRANSACTIONS, transactions);
-      console.log('New transaction added:', transaction);
+      console.log('New transaction added and saved to local storage:', transaction);
     }
 
     // After adding the transaction, update the user's wallet balance
