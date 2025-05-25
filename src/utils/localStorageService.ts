@@ -423,14 +423,59 @@ export const getUserTransactions = async (userId: string): Promise<Transaction[]
   return transactions.data || []
 };
 
-export const addTransaction = async (transaction: Transaction): Promise<void> => {
-  const transactions = await getAllTransactions();
-  transactions.push(transaction);
-  //setToStorage(STORAGE_KEYS.TRANSACTIONS, transactions);
+// export const addTransaction = async (transaction: Transaction): Promise<void> => {
+//   const transactions = await getAllTransactions();
+//   transactions.push(transaction);
+//   setToStorage(STORAGE_KEYS.TRANSACTIONS, transactions);
 
-  // Update wallet balance
-  await updateWalletAfterTransaction(transaction);
+//   // Update wallet balance
+//   await updateWalletAfterTransaction(transaction);
+// };
+export const addTransaction = async (transaction: Transaction): Promise<void> => {
+  try {
+    // Fetch existing transactions for the current user
+    const transactions = await getAllTransactions();
+
+    // If no transactions found, create a new one
+    if (transactions.length === 0) {
+      console.log('No transactions found, creating a new one...');
+      
+      // Create a new transaction based on the passed data
+      const newTransaction: Transaction = {
+        //id: uuidv4(),  // Generate a new transaction ID
+        userId: transaction.userId,
+        amount: transaction.amount,
+        type: transaction.type,
+        description: transaction.description,
+        date: new Date().toISOString(),
+        status: 'completed',  // Set default status
+        paymentId: transaction.paymentId || '',  // Use the provided payment ID or an empty string
+      };
+
+      // Call API to create the new transaction in the backend
+      await axios.post(`${serverUrl}/api/db/transactions`, newTransaction);  // Send the new transaction to the backend
+
+      // Optionally, update local storage with the new transaction
+      const currentTransactions = getFromStorage<Transaction[]>(STORAGE_KEYS.TRANSACTIONS) || [];
+      currentTransactions.push(newTransaction);
+      setToStorage(STORAGE_KEYS.TRANSACTIONS, currentTransactions);
+
+      console.log('New transaction created and saved to local storage:', newTransaction);
+    } else {
+      // If transactions already exist, add the new one to the array
+      transactions.push(transaction);
+      setToStorage(STORAGE_KEYS.TRANSACTIONS, transactions);
+      console.log('New transaction added:', transaction);
+    }
+
+    // After adding the transaction, update the user's wallet balance
+    await updateWalletAfterTransaction(transaction);
+
+  } catch (error) {
+    console.error('Error adding transaction:', error);
+  }
 };
+
 
 // Update wallet after a transaction
 const updateWalletAfterTransaction = async (transaction: Transaction): Promise<void> => {
@@ -466,6 +511,15 @@ const updateWalletAfterTransaction = async (transaction: Transaction): Promise<v
   const generalWallet = getWallet();
   if (generalWallet.userId === transaction.userId) {
     setToStorage(STORAGE_KEYS.WALLET, updatedWallet);
+  }
+  try {
+    await axios.put(`${serverUrl}/api/db/wallet/${transaction.userId}`, {
+      balance: updatedWallet.balance,
+      transactions: updatedWallet.transactions
+    });
+    console.log(`Wallet updated for user ${transaction.userId} in the database.`);
+  } catch (error) {
+    console.error('Error updating wallet in database:', error);
   }
 };
 

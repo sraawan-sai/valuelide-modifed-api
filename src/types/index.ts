@@ -40,7 +40,7 @@ export type TransactionType =
   | 'withdrawal_reversal';
 
 export interface Transaction {
-  id: string;
+  id?: string;
   userId: string;
   amount: number;
   type: TransactionType;
@@ -50,6 +50,7 @@ export interface Transaction {
   relatedUserId?: string; // For referral/level commissions
   level?: number;
   pairs?: number;        // For team matching bonus
+  paymentId?:string
 }
 
 export interface Wallet {
