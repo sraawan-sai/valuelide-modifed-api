@@ -19,7 +19,7 @@ import {
 } from '../data/mockData';
 import axios from 'axios';
 import { get } from 'jquery';
-
+import { v4 as uuidv4 } from 'uuid';
 // Storage keys
 export const STORAGE_KEYS = {
   CURRENT_USER: 'mlm_current_user',
@@ -442,7 +442,7 @@ export const addTransaction = async (transaction: Transaction): Promise<void> =>
       
       // Create a new transaction based on the passed data
       const newTransaction: Transaction = {
-        //id: uuidv4(),  // Generate a new transaction ID
+        id: uuidv4(),  // Generate a new transaction ID
         userId: transaction.userId,
         amount: transaction.amount,
         type: transaction.type,
